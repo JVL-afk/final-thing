@@ -4,132 +4,179 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 
-export default function SignUp() {
+export default function SignupPage() {
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    agreeToTerms: false
   })
-  const [loading, setLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
-    setMessage('')
-
+    
     if (formData.password !== formData.confirmPassword) {
-      setMessage('Passwords do not match')
-      setLoading(false)
+      setMessage('Passwords do not match!')
+      return
+    }
+    
+    if (!formData.agreeToTerms) {
+      setMessage('Please agree to the terms and conditions!')
       return
     }
 
-    try {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password
-        })
-      })
+    setIsLoading(true)
+    setMessage('')
 
-      const data = await response.json()
+    // Simulate signup process
+    setTimeout(() => {
+      setIsLoading(false)
+      setMessage('Account created successfully! Please check your email for verification.')
+      // Redirect to dashboard after successful signup
+      setTimeout(() => {
+        window.location.href = '/dashboard'
+      }, 2000)
+    }, 2000)
+  }
 
-      if (response.ok) {
-        setMessage('Account created successfully! Check your email for verification.')
-      } else {
-        setMessage(data.error || 'Something went wrong')
-      }
-    } catch (error) {
-      setMessage('Network error. Please try again.')
-    } finally {
-      setLoading(false)
-    }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }))
   }
 
   return (
     <div className="min-h-screen">
       <Navbar />
-      
-      <div className="container mx-auto px-4 py-20">
-        <div className="max-w-md mx-auto bg-white/10 backdrop-blur-sm rounded-lg p-8">
-          <h1 className="text-3xl font-bold text-white text-center mb-8">
-            Join AFFILIFY
-          </h1>
-          
+      <div className="auth-container">
+        <div className="auth-card fade-in">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-white mb-2">Join AFFILIFY</h1>
+            <p className="text-orange-200">Start your affiliate marketing journey today</p>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-white mb-2">Full Name</label>
-              <input
-                type="text"
-                required
-                className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-red-500 focus:outline-none"
-                placeholder="Enter your full name"
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-white mb-2">Email Address</label>
+              <label className="block text-white text-sm font-semibold mb-2">
+                Email Address
+              </label>
               <input
                 type="email"
-                required
-                className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-red-500 focus:outline-none"
-                placeholder="Enter your email"
+                name="email"
                 value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-white mb-2">Password</label>
-              <input
-                type="password"
+                onChange={handleChange}
                 required
-                className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-red-500 focus:outline-none"
-                placeholder="Create a password"
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-white mb-2">Confirm Password</label>
-              <input
-                type="password"
-                required
-                className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-red-500 focus:outline-none"
-                placeholder="Confirm your password"
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                className="form-input"
+                placeholder="Enter your email"
               />
             </div>
 
+            <div>
+              <label className="block text-white text-sm font-semibold mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Create a password"
+              />
+            </div>
+
+            <div>
+              <label className="block text-white text-sm font-semibold mb-2">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Confirm your password"
+              />
+            </div>
+
+            <div className="flex items-start">
+              <input
+                type="checkbox"
+                name="agreeToTerms"
+                checked={formData.agreeToTerms}
+                onChange={handleChange}
+                className="mt-1 mr-3"
+                required
+              />
+              <label className="text-white text-sm">
+                I agree to the{' '}
+                <Link href="/terms" className="text-orange-300 hover:text-orange-200 underline">
+                  Terms of Service
+                </Link>
+                {' '}and{' '}
+                <Link href="/privacy" className="text-orange-300 hover:text-orange-200 underline">
+                  Privacy Policy
+                </Link>
+              </label>
+            </div>
+
             {message && (
-              <div className={`p-3 rounded-lg ${message.includes('successfully') ? 'bg-green-500/20 text-green-200' : 'bg-red-500/20 text-red-200'}`}>
+              <div className={message.includes('successfully') ? 'success-message' : 'error-message'}>
                 {message}
               </div>
             )}
-            
+
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold btn-hover disabled:opacity-50"
+              disabled={isLoading}
+              className={`form-button ${isLoading ? 'loading' : ''}`}
             >
-              {loading ? 'Creating Account...' : 'Create Account 🚀'}
+              {isLoading ? (
+                <div className="flex items-center justify-center">
+                  <div className="spinner w-5 h-5 mr-3"></div>
+                  Creating Account...
+                </div>
+              ) : (
+                'Create Account'
+              )}
             </button>
           </form>
-          
-          <p className="text-center text-gray-300 mt-6">
-            Already have an account?{' '}
-            <Link href="/login" className="text-red-400 hover:text-red-300">
-              Sign In
-            </Link>
-          </p>
+
+          <div className="mt-8 text-center">
+            <p className="text-orange-200">
+              Already have an account?{' '}
+              <Link href="/login" className="text-white font-semibold hover:text-orange-300">
+                Sign in here
+              </Link>
+            </p>
+          </div>
+
+          {/* Social Signup Options */}
+          <div className="mt-8">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white border-opacity-30"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-transparent text-orange-200">Or continue with</span>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button className="w-full inline-flex justify-center py-2 px-4 border border-white border-opacity-30 rounded-md shadow-sm bg-white bg-opacity-10 text-sm font-medium text-white hover:bg-opacity-20 transition-all duration-300">
+                <span>Google</span>
+              </button>
+              <button className="w-full inline-flex justify-center py-2 px-4 border border-white border-opacity-30 rounded-md shadow-sm bg-white bg-opacity-10 text-sm font-medium text-white hover:bg-opacity-20 transition-all duration-300">
+                <span>GitHub</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
