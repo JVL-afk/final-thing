@@ -70,7 +70,7 @@ export default function PricingPage() {
             <ul className="space-y-3 mb-8 text-left">
               <li className="flex items-start">
                 <span className="text-green-400 mr-3">✓</span>
-                <span className="text-orange-200">Unlimited websites</span>
+                <span className="text-orange-200">10 websites</span>
               </li>
               <li className="flex items-start">
                 <span className="text-green-400 mr-3">✓</span>
@@ -126,7 +126,7 @@ export default function PricingPage() {
               </li>
               <li className="flex items-start">
                 <span className="text-green-400 mr-3">✓</span>
-                <span className="text-orange-200">Bulk website generation</span>
+                <span className="text-orange-200">Unlimited website generation</span>
               </li>
               <li className="flex items-start">
                 <span className="text-green-400 mr-3">✓</span>
