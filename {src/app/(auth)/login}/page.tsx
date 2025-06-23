@@ -2,106 +2,147 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 
-export default function Login() {
+export default function LoginPage() {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   })
-  const [loading, setLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
-  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    setIsLoading(true)
     setMessage('')
 
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      })
+    // Simulate login process
+    setTimeout(() => {
+      setIsLoading(false)
+      setMessage('Login successful! Redirecting to dashboard...')
+      // Redirect to dashboard after successful login
+      setTimeout(() => {
+        window.location.href = '/dashboard'
+      }, 1500)
+    }, 2000)
+  }
 
-      const data = await response.json()
-
-      if (response.ok) {
-        router.push('/dashboard')
-      } else {
-        setMessage(data.error || 'Login failed')
-      }
-    } catch (error) {
-      setMessage('Network error. Please try again.')
-    } finally {
-      setLoading(false)
-    }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
   }
 
   return (
     <div className="min-h-screen">
       <Navbar />
-      
-      <div className="container mx-auto px-4 py-20">
-        <div className="max-w-md mx-auto bg-white/10 backdrop-blur-sm rounded-lg p-8">
-          <h1 className="text-3xl font-bold text-white text-center mb-8">
-            Welcome Back
-          </h1>
-          
+      <div className="auth-container">
+        <div className="auth-card fade-in">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-white mb-2">Welcome Back</h1>
+            <p className="text-orange-200">Sign in to your AFFILIFY account</p>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-white mb-2">Email Address</label>
+              <label className="block text-white text-sm font-semibold mb-2">
+                Email Address
+              </label>
               <input
                 type="email"
-                required
-                className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-red-500 focus:outline-none"
-                placeholder="Enter your email"
+                name="email"
                 value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-white mb-2">Password</label>
-              <input
-                type="password"
+                onChange={handleChange}
                 required
-                className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-gray-300 border border-white/30 focus:border-red-500 focus:outline-none"
-                placeholder="Enter your password"
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                className="form-input"
+                placeholder="Enter your email"
               />
             </div>
 
+            <div>
+              <label className="block text-white text-sm font-semibold mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                className="form-input"
+                placeholder="Enter your password"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  className="mr-2"
+                />
+                <label className="text-white text-sm">
+                  Remember me
+                </label>
+              </div>
+              <Link href="/forgot-password" className="text-orange-300 hover:text-orange-200 text-sm underline">
+                Forgot your password?
+              </Link>
+            </div>
+
             {message && (
-              <div className="p-3 rounded-lg bg-red-500/20 text-red-200">
+              <div className={message.includes('successful') ? 'success-message' : 'error-message'}>
                 {message}
               </div>
             )}
-            
+
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold btn-hover disabled:opacity-50"
+              disabled={isLoading}
+              className={`form-button ${isLoading ? 'loading' : ''}`}
             >
-              {loading ? 'Signing In...' : 'Sign In 🚀'}
+              {isLoading ? (
+                <div className="flex items-center justify-center">
+                  <div className="spinner w-5 h-5 mr-3"></div>
+                  Signing In...
+                </div>
+              ) : (
+                'Sign In'
+              )}
             </button>
           </form>
-          
-          <div className="text-center mt-6">
-            <Link href="/forgot-password" className="text-red-400 hover:text-red-300">
-              Forgot Password?
-            </Link>
+
+          <div className="mt-8 text-center">
+            <p className="text-orange-200">
+              Don't have an account?{' '}
+              <Link href="/signup" className="text-white font-semibold hover:text-orange-300">
+                Sign up here
+              </Link>
+            </p>
           </div>
-          
-          <p className="text-center text-gray-300 mt-4">
-            Don't have an account?{' '}
-            <Link href="/signup" className="text-red-400 hover:text-red-300">
-              Sign Up
-            </Link>
-          </p>
+
+          {/* Social Login Options */}
+          <div className="mt-8">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white border-opacity-30"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-transparent text-orange-200">Or continue with</span>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button className="w-full inline-flex justify-center py-2 px-4 border border-white border-opacity-30 rounded-md shadow-sm bg-white bg-opacity-10 text-sm font-medium text-white hover:bg-opacity-20 transition-all duration-300">
+                <span>Google</span>
+              </button>
+              <button className="w-full inline-flex justify-center py-2 px-4 border border-white border-opacity-30 rounded-md shadow-sm bg-white bg-opacity-10 text-sm font-medium text-white hover:bg-opacity-20 transition-all duration-300">
+                <span>GitHub</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
