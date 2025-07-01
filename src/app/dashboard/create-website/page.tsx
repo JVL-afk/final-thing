@@ -1,54 +1,102 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { useState } from 'react';
+import { useRouter } from 'next/navigation'; // Import useRouter
+import Link from 'next/link'; // Import Link for navigation
 
-export default function CreateWebsitePage() {
-  const [affiliateLink, setAffiliateLink] = useState('')
-  const [productName, setProductName] = useState('') // Optional: for better AI context
-  const [loading, setLoading] = useState(false)
-  const [generatedWebsite, setGeneratedWebsite] = useState(null)
-  const [error, setError] = useState('')
+export default function CreateWebsite() {
+  const [affiliateLink, setAffiliateLink] = useState('');
+  const [productName, setProductName] = useState(''); // Add state for product name
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<any>(null); // Store the full result from generation
+  const [error, setError] = useState('');
+  const [userEmail, setUserEmail] = useState(''); // To get user email for saving
+  const router = useRouter();
 
-  const router = useRouter()
+  // Fetch user email on component mount
+  useState(() => {
+    const storedEmail = localStorage.getItem('userEmail');
+    if (storedEmail) {
+      setUserEmail(storedEmail);
+    } else {
+      router.push('/login'); // Redirect if not logged in
+    }
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-    setGeneratedWebsite(null)
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    setResult(null); // Clear previous result
+
+    if (!userEmail) {
+      setError('User not logged in. Please log in to generate websites.');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch('/api/ai/generate-website', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-email': localStorage.getItem('userEmail') || 'demo@user.com' // Pass user email for tracking
+          'x-user-email': userEmail, // Pass user email in header
         },
-        body: JSON.stringify({ affiliateLink, productName }),
-      })
+        body: JSON.stringify({
+          affiliateLink: affiliateLink,
+          productName: productName, // Pass product name
+        }),
+      });
 
-      const data = await response.json()
-
+      const data = await response.json();
       if (data.success) {
-        setGeneratedWebsite(data.website)
-        // Track website generation
-        if (typeof window !== 'undefined' && window.AFFILIFY && window.AFFILIFY.trackWebsiteGeneration) {
-          window.AFFILIFY.trackWebsiteGeneration(productName || 'unknown product', 'AI Model X', data.generationTime);
-        }
+        setResult(data.website); // Store the website object from the response
+        alert('Website generated successfully! Now click "Store Website" to save it.');
       } else {
-        setError(data.error || 'Failed to generate website. Please try again.')
+        setError(data.error || 'Failed to generate website');
       }
-    } catch (err) {
-      setError('An error occurred while generating the website. Please try again.')
+    } catch (err: any) {
+      setError('Error: ' + err.message);
     } finally {
-      setLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
+
+  const handleStoreWebsite = async () => {
+    if (!result || !userEmail) {
+      alert('No website generated or user not logged in.');
+      return;
+    }
+
+    setIsLoading(true); // Use isLoading for this too, or add a separate state
+    setError('');
+
+    try {
+      // This call is now redundant if generate-website already saves to DB.
+      // However, for debugging, we can simulate a direct save.
+      // In a production app, the generate-website API would handle the saving.
+      // For now, let's just re-confirm the data is structured correctly for saving.
+
+      // The saving logic is now primarily in /api/ai/generate-website/route.ts
+      // If the website was successfully generated, it should have been saved.
+      // This button will primarily serve to confirm the data is there.
+
+      // To explicitly test the saving part, we could create a separate API endpoint
+      // like /api/websites/save, but for now, let's assume generate-website is the source.
+
+      // Let's re-fetch the 'My Websites' list to see if it appeared.
+      alert('Attempting to verify if website was stored. Check "My Websites" page.');
+      router.push('/dashboard/my-websites'); // Redirect to check
+    } catch (err: any) {
+      setError('Error storing website: ' + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-orange-600 to-black">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-orange-600 to-black text-white">
       {/* Navigation */}
       <nav className="bg-black/20 backdrop-blur-sm border-b border-orange-500/20">
         <div className="container mx-auto px-4 py-4">
@@ -65,102 +113,70 @@ export default function CreateWebsitePage() {
         </div>
       </nav>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-4xl font-bold text-white mb-6 text-center">
-            Generate Your Affiliate Website with AI 🤖
-          </h1>
-          <p className="text-orange-200 text-lg mb-8 text-center">
-            Provide an affiliate link, and our AI will build a high-converting website around that product!
-          </p>
+      <div className="max-w-2xl mx-auto p-6">
+        <h1 className="text-3xl font-bold mb-6 text-center">Create a New Website</h1>
 
-          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-8 border border-orange-500/20">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="affiliateLink" className="block text-sm font-medium text-orange-200 mb-2">
-                  Affiliate Product Link
-                </label>
-                <input
-                  type="url"
-                  id="affiliateLink"
-                  value={affiliateLink}
-                  onChange={(e) => setAffiliateLink(e.target.value)}
-                  className="w-full px-4 py-3 bg-black/50 border border-orange-500/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
-                  placeholder="e.g., https://amazon.com/product-xyz?tag=yourid"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="productName" className="block text-sm font-medium text-orange-200 mb-2">
-                  Product Name (Optional, for better AI context )
-                </label>
-                <input
-                  type="text"
-                  id="productName"
-                  value={productName}
-                  onChange={(e) => setProductName(e.target.value)}
-                  className="w-full px-4 py-3 bg-black/50 border border-orange-500/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
-                  placeholder="e.g., 'XYZ Smart Coffee Maker'"
-                />
-              </div>
-
-              {error && (
-                <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3">
-                  <p className="text-red-200 text-sm">{error}</p>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 px-4 rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 transition-all duration-200"
-              >
-                {loading ? 'Generating Website...' : 'Generate Website'}
-              </button>
-            </form>
-
-            {generatedWebsite && (
-              <div className="mt-8 pt-8 border-t border-orange-500/20">
-                <h2 className="text-3xl font-bold text-white mb-4">Your AI-Generated Website:</h2>
-                <div className="bg-black/20 rounded-lg p-6 border border-purple-500/30">
-                  <h3 className="text-2xl font-bold text-purple-300 mb-2">{generatedWebsite.title}</h3>
-                  <p className="text-orange-200 mb-4">{generatedWebsite.description}</p>
-                  <div className="space-y-4">
-                    {generatedWebsite.sections.map((section, index) => (
-                      <div key={index} className="bg-black/30 p-4 rounded-lg">
-                        <h4 className="text-xl font-semibold text-white mb-2">{section.heading}</h4>
-                        <p className="text-gray-300">{section.content}</p>
-                        {section.products && section.products.length > 0 && (
-                          <div className="mt-4">
-                            <h5 className="text-lg font-semibold text-orange-300 mb-2">Recommended Products:</h5>
-                            <ul className="list-disc list-inside text-gray-300">
-                              {section.products.map((product, pIndex) => (
-                                <li key={pIndex}>
-                                  <span className="font-medium text-white">{product.name}:</span> {product.description} (<a href={product.affiliateLink} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Buy Now</a>)
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-6 text-center">
-                    <button
-                      onClick={() => alert('Publishing website... (This would trigger deployment)')}
-                      className="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-semibold transform hover:scale-105 transition-all duration-200"
-                    >
-                      Publish Website
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+        <form onSubmit={handleSubmit} className="space-y-4 bg-black/30 backdrop-blur-sm p-6 rounded-xl border border-purple-500/20">
+          <div>
+            <label htmlFor="affiliateLink" className="block text-sm font-medium text-orange-200 mb-2">
+              Affiliate Link
+            </label>
+            <input
+              type="url"
+              id="affiliateLink"
+              value={affiliateLink}
+              onChange={(e) => setAffiliateLink(e.target.value)}
+              placeholder="https://www.amazon.com/product-link"
+              className="w-full p-3 bg-black/50 border border-orange-500/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+              required
+            />
           </div>
-        </div>
+          <div>
+            <label htmlFor="productName" className="block text-sm font-medium text-orange-200 mb-2">
+              Product Name (Optional, for better AI generation )
+            </label>
+            <input
+              type="text"
+              id="productName"
+              value={productName}
+              onChange={(e) => setProductName(e.target.value)}
+              placeholder="e.g., 'Ergonomic Office Chair'"
+              className="w-full p-3 bg-black/50 border border-orange-500/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg disabled:opacity-50 transition-all duration-200"
+          >
+            {isLoading ? 'Generating Website...' : 'Generate Website'}
+          </button>
+        </form>
+
+        {error && (
+          <div className="mt-4 p-4 bg-red-500/20 border border-red-500/50 text-red-200 rounded-lg">
+            {error}
+          </div>
+        )}
+
+        {result && (
+          <div className="mt-6 p-6 bg-green-500/20 border border-green-500/50 text-green-200 rounded-lg space-y-4">
+            <h3 className="font-bold text-xl">Website Generated Successfully!</h3>
+            <p>URL: <a href={result.url} target="_blank" className="text-blue-400 underline hover:text-blue-300">{result.url}</a></p>
+            <p>Title: {result.title}</p>
+            <p>Description: {result.description}</p>
+            <button
+              onClick={handleStoreWebsite}
+              disabled={isLoading}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg disabled:opacity-50 transition-all duration-200"
+            >
+              Check My Websites Page
+            </button>
+          </div>
+        )}
       </div>
     </div>
-  )
+  );
 }
 

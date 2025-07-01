@@ -1,210 +1,139 @@
-import { NextRequest, NextResponse } from 'next/server'
-
-// Mock database - replace with your actual database
-const analyticsData = new Map()
-const websiteStats = new Map()
+import { NextRequest, NextResponse } from 'next/server';
+import clientPromise from '../../../../../lib/mongodb'; // Correct path for this file
 
 export async function POST(request: NextRequest) {
   try {
-    const { type, websiteId, productName, affiliateUrl, value, currency, niche, aiModel, generationTime, timestamp, userAgent, referrer } = await request.json()
-    
-    const userEmail = request.headers.get('x-user-email') || 'demo@user.com'
-    const today = new Date().toISOString().split('T')[0]
-    
-    // Initialize user analytics if not exists
-    if (!analyticsData.has(userEmail)) {
-      analyticsData.set(userEmail, {
-        totalClicks: 0,
-        totalConversions: 0,
-        totalRevenue: 0,
-        dailyData: new Map(),
-        websiteData: new Map()
-      })
+    const { eventType, userId, data } = await request.json();
+
+    if (!eventType || !userId) {
+      return NextResponse.json(
+        { success: false, error: 'Event type and user ID are required' },
+        { status: 400 }
+      );
     }
-    
-    const userAnalytics = analyticsData.get(userEmail)
-    
-    // Initialize daily data if not exists
-    if (!userAnalytics.dailyData.has(today)) {
-      userAnalytics.dailyData.set(today, {
-        clicks: 0,
-        conversions: 0,
-        revenue: 0,
-        uniqueVisitors: new Set(),
-        topProducts: new Map()
-      })
-    }
-    
-    const todayData = userAnalytics.dailyData.get(today)
-    
-    // Initialize website data if not exists
-    if (websiteId && !userAnalytics.websiteData.has(websiteId)) {
-      userAnalytics.websiteData.set(websiteId, {
-        clicks: 0,
-        conversions: 0,
-        revenue: 0,
-        topProducts: new Map(),
-        trafficSources: new Map(),
-        dailyStats: new Map()
-      })
-    }
-    
-    const websiteData = websiteId ? userAnalytics.websiteData.get(websiteId) : null
-    
-    switch (type) {
-      case 'click':
-        // Track click
-        userAnalytics.totalClicks++
-        todayData.clicks++
-        
-        if (websiteData) {
-          websiteData.clicks++
-          
-          // Track product clicks
-          if (productName) {
-            const currentCount = websiteData.topProducts.get(productName) || 0
-            websiteData.topProducts.set(productName, currentCount + 1)
-            
-            const todayProductCount = todayData.topProducts.get(productName) || 0
-            todayData.topProducts.set(productName, todayProductCount + 1)
-          }
-          
-          // Track traffic source
-          if (referrer) {
-            const domain = new URL(referrer).hostname
-            const currentTraffic = websiteData.trafficSources.get(domain) || 0
-            websiteData.trafficSources.set(domain, currentTraffic + 1)
-          }
-        }
-        
-        console.log(`🔥 REAL CLICK TRACKED: ${websiteId} - ${productName}`)
-        break
-        
-      case 'conversion':
-        // Track conversion
-        const conversionValue = parseFloat(value) || 0
-        userAnalytics.totalConversions++
-        userAnalytics.totalRevenue += conversionValue
-        todayData.conversions++
-        todayData.revenue += conversionValue
-        
-        if (websiteData) {
-          websiteData.conversions++
-          websiteData.revenue += conversionValue
-          
-          // Track daily website stats
-          if (!websiteData.dailyStats.has(today)) {
-            websiteData.dailyStats.set(today, { clicks: 0, conversions: 0, revenue: 0 })
-          }
-          const websiteTodayStats = websiteData.dailyStats.get(today)
-          websiteTodayStats.conversions++
-          websiteTodayStats.revenue += conversionValue
-        }
-        
-        console.log(`💰 REAL CONVERSION TRACKED: ${websiteId} - $${conversionValue}`)
-        break
-        
-      case 'website_generation':
-        // Track AI website generation
-        console.log(`🤖 WEBSITE GENERATED: ${niche} in ${generationTime}ms`)
-        break
-    }
-    
-    // Update user analytics
-    analyticsData.set(userEmail, userAnalytics)
-    
-    return NextResponse.json({
-      success: true,
-      message: `${type} tracked successfully`,
-      data: {
-        totalClicks: userAnalytics.totalClicks,
-        totalConversions: userAnalytics.totalConversions,
-        totalRevenue: userAnalytics.totalRevenue
-      }
-    })
-    
-  } catch (error: any) {
-    console.error('Analytics tracking error:', error)
+
+    const client = await clientPromise;
+    const db = client.db('affilify'); // Use your database name
+    const analyticsCollection = db.collection('analyticsEvents');
+
+    const newEvent = {
+      eventType,
+      userId,
+      timestamp: new Date(),
+      data: data || {}, // Store additional event-specific data
+    };
+
+    await analyticsCollection.insertOne(newEvent);
+
+    console.log(`Analytics event tracked: ${eventType} for user ${userId}`);
+
     return NextResponse.json(
-      { success: false, error: 'Failed to track analytics' },
+      { success: true, message: 'Analytics event tracked successfully' },
+      { status: 200 }
+    );
+  } catch (error: any) {
+    console.error('Analytics tracking error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error during analytics tracking' },
       { status: 500 }
-    )
+    );
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const url = new URL(request.url)
-    const websiteId = url.searchParams.get('websiteId')
-    const range = url.searchParams.get('range') || '7d'
-    const userEmail = request.headers.get('x-user-email') || 'demo@user.com'
-    
-    const userAnalytics = analyticsData.get(userEmail)
-    
-    // Ensure conversionRate is always present, even if userAnalytics is not found
-    if (!userAnalytics) {
-      return NextResponse.json({
-        success: true,
-        data: {
-          totalClicks: 0,
-          totalConversions: 0,
-          totalRevenue: 0,
-          conversionRate: 0, // This is the crucial line added
-          dailyData: [],
-          websiteData: null
-        }
-      })
+    const { searchParams } = new URL(request.url);
+    const range = searchParams.get('range') || '7d'; // e.g., '7d', '30d', '365d'
+    const userId = searchParams.get('userId'); // Get userId from query param
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'User ID is required for analytics' },
+        { status: 400 }
+      );
     }
-    
-    // Calculate date range
-    const days = parseInt(range.replace('d', ''))
-    const endDate = new Date()
-    const startDate = new Date(endDate.getTime() - (days * 24 * 60 * 60 * 1000))
-    
-    // Get daily data for range
-    const dailyData = []
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0]
-      const dayData = userAnalytics.dailyData.get(dateStr) || { clicks: 0, conversions: 0, revenue: 0 }
-      dailyData.push({
-        date: dateStr,
-        clicks: dayData.clicks,
-        conversions: dayData.conversions,
-        revenue: dayData.revenue
-      })
+
+    const client = await clientPromise;
+    const db = client.db('affilify'); // Use your database name
+    const analyticsCollection = db.collection('analyticsEvents');
+    const websitesCollection = db.collection('generatedWebsites'); // Get reference to websites collection
+
+    // --- Get total websites for the user ---
+    const totalWebsiteGenerations = await websitesCollection.countDocuments({ userId });
+
+    let startDate = new Date();
+    if (range === '7d') {
+      startDate.setDate(startDate.getDate() - 7);
+    } else if (range === '30d') {
+      startDate.setDate(startDate.getDate() - 30);
+    } else if (range === '365d') {
+      startDate.setFullYear(startDate.getFullYear() - 1);
+    } else {
+      // Default to a long range if invalid
+      startDate.setFullYear(startDate.getFullYear() - 1);
     }
-    
-    // Get website-specific data
-    let websiteData = null
-    if (websiteId && userAnalytics.websiteData.has(websiteId)) {
-      const data = userAnalytics.websiteData.get(websiteId)
-      websiteData = {
-        clicks: data.clicks,
-        conversions: data.conversions,
-        revenue: data.revenue,
-        conversionRate: data.clicks > 0 ? (data.conversions / data.clicks * 100) : 0,
-        topProducts: Array.from(data.topProducts.entries()).map(([name, clicks]) => ({ name, clicks })),
-        trafficSources: Array.from(data.trafficSources.entries()).map(([source, clicks]) => ({ source, clicks }))
+
+    // Fetch events for the specified user and time range
+    const events = await analyticsCollection.find({
+      userId: userId,
+      timestamp: { $gte: startDate }
+    }).toArray();
+
+    // Aggregate data for dashboard display
+    let totalClicks = 0;
+    let totalConversions = 0;
+    let totalRevenue = 0;
+    // totalWebsiteGenerations is now fetched directly from websitesCollection
+
+    // Daily performance data
+    const dailyPerformanceMap = new Map(); // Date string -> { clicks, conversions, revenue }
+
+    events.forEach(event => {
+      const dateStr = event.timestamp.toISOString().split('T')[0]; // YYYY-MM-DD
+
+      if (!dailyPerformanceMap.has(dateStr)) {
+        dailyPerformanceMap.set(dateStr, { clicks: 0, conversions: 0, revenue: 0 });
       }
-    }
-    
+      const dailyStats = dailyPerformanceMap.get(dateStr);
+
+      if (event.eventType === 'click') {
+        totalClicks++;
+        dailyStats.clicks++;
+      } else if (event.eventType === 'conversion') {
+        totalConversions++;
+        const revenue = event.data?.revenue || 0;
+        totalRevenue += revenue;
+        dailyStats.conversions++;
+        dailyStats.revenue += revenue;
+      }
+      // No need to count website_generation events here, as we get total from websitesCollection
+    });
+
+    // Convert map to sorted array for daily performance chart
+    const dailyPerformance = Array.from(dailyPerformanceMap.entries())
+      .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+      .map(([date, stats]) => ({ date, ...stats }));
+
+    const conversionRate = totalClicks > 0 ? (totalConversions / totalClicks) * 100 : 0;
+
     return NextResponse.json({
       success: true,
-      data: {
-        totalClicks: userAnalytics.totalClicks,
-        totalConversions: userAnalytics.totalConversions,
-        totalRevenue: userAnalytics.totalRevenue,
-        conversionRate: userAnalytics.totalClicks > 0 ? (userAnalytics.totalConversions / userAnalytics.totalClicks * 100) : 0,
-        dailyData,
-        websiteData
-      }
-    })
-    
+      analytics: {
+        totalClicks,
+        totalConversions,
+        totalRevenue,
+        totalWebsiteGenerations, // Ensure this is included in the response
+        conversionRate: conversionRate.toFixed(2), // Format to 2 decimal places
+        dailyPerformance,
+      },
+    });
+
   } catch (error: any) {
-    console.error('Analytics data error:', error)
+    console.error('Analytics data fetch error:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { success: false, error: 'Internal server error fetching analytics' },
       { status: 500 }
-    )
+    );
   }
 }
+

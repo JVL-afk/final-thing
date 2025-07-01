@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 
-export default function AnalyzeWebsitePage() {
+export default function AnalyzeWebsitePage( ) {
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [analysisResult, setAnalysisResult] = useState(null)
@@ -16,24 +16,30 @@ export default function AnalyzeWebsitePage() {
     setAnalysisResult(null)
 
     try {
-      const response = await fetch('/api/ai/analyze-website', {
+      // *** CRITICAL CHANGE: Calling the real backend API on port 3000 ***
+      // REPLACE '45.32.73.36' WITH YOUR ACTUAL SERVER'S PUBLIC IP ADDRESS
+      const response = await fetch('http://45.32.73.36:3000/api/analyze-website', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-email': localStorage.getItem('userEmail') || 'demo@user.com' // Pass user email for tracking
+          // 'x-user-email': localStorage.getItem('userEmail' ) || 'demo@user.com' // May not be needed by external backend
         },
-        body: JSON.stringify({ websiteUrl }),
+        body: JSON.stringify({ url: websiteUrl }),
       })
 
       const data = await response.json()
 
       if (data.success) {
-        setAnalysisResult(data.analysis)
+        setAnalysisResult(data.analysis) // Assuming backend returns 'analysis' object
+        // Track website analysis (if AFFILIFY.trackWebsiteAnalysis exists)
+        if (typeof window !== 'undefined' && window.AFFILIFY && window.AFFILIFY.trackWebsiteAnalysis) {
+          window.AFFILIFY.trackWebsiteAnalysis(websiteUrl, data.analysis.niche || 'unknown', data.analysis.score || 0);
+        }
       } else {
-        setError(data.error || 'Failed to analyze website. Please try again.')
+        setError(data.error || 'Failed to analyze website. Please check backend logs.')
       }
-    } catch (err) {
-      setError('An error occurred while analyzing the website. Please try again.')
+    } catch (err: any) {
+      setError('An error occurred while analyzing the website: ' + err.message + '. Ensure backend is running and accessible.')
     } finally {
       setLoading(false)
     }
@@ -60,10 +66,10 @@ export default function AnalyzeWebsitePage() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">
           <h1 className="text-4xl font-bold text-white mb-6 text-center">
-            AI Website Analysis 🧠
+            Analyze Any Website with AI 📊
           </h1>
           <p className="text-orange-200 text-lg mb-8 text-center">
-            Get an AI-powered analysis of any website for SEO, content, and affiliate optimization opportunities.
+            Get AI-powered insights into website performance, SEO, content, and affiliate potential.
           </p>
 
           <div className="bg-black/30 backdrop-blur-sm rounded-xl p-8 border border-orange-500/20">
@@ -78,7 +84,7 @@ export default function AnalyzeWebsitePage() {
                   value={websiteUrl}
                   onChange={(e) => setWebsiteUrl(e.target.value)}
                   className="w-full px-4 py-3 bg-black/50 border border-orange-500/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
-                  placeholder="e.g., https://example.com"
+                  placeholder="e.g., https://www.example.com"
                   required
                 />
               </div>
@@ -100,36 +106,69 @@ export default function AnalyzeWebsitePage() {
 
             {analysisResult && (
               <div className="mt-8 pt-8 border-t border-orange-500/20">
-                <h2 className="text-3xl font-bold text-white mb-4">Analysis Results for {analysisResult.url}:</h2>
-                <div className="bg-black/20 rounded-lg p-6 border border-purple-500/30 space-y-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-purple-300 mb-2">Summary:</h3>
-                    <p className="text-gray-300">{analysisResult.summary}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-purple-300 mb-2">SEO Recommendations:</h3>
-                    <ul className="list-disc list-inside text-gray-300">
-                      {analysisResult.seoRecommendations.map((rec, index) => (
-                        <li key={index}>{rec}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-purple-300 mb-2">Content Opportunities:</h3>
-                    <ul className="list-disc list-inside text-gray-300">
-                      {analysisResult.contentOpportunities.map((opp, index) => (
-                        <li key={index}>{opp}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-purple-300 mb-2">Affiliate Integration Suggestions:</h3>
-                    <ul className="list-disc list-inside text-gray-300">
-                      {analysisResult.affiliateSuggestions.map((sugg, index) => (
-                        <li key={index}>{sugg}</li>
-                      ))}
-                    </ul>
-                  </div>
+                <h2 className="text-3xl font-bold text-white mb-4">Analysis Results for: {websiteUrl}</h2>
+                <div className="bg-black/20 rounded-lg p-6 border border-purple-500/30">
+                  {/* Display Summary */}
+                  {analysisResult.summary && (
+                    <div className="mb-4">
+                      <h3 className="text-xl font-semibold text-purple-300 mb-2">Summary:</h3>
+                      <p className="text-gray-300">{analysisResult.summary}</p>
+                    </div>
+                  )}
+
+                  {/* Display Niche */}
+                  {analysisResult.niche && (
+                    <div className="mb-4">
+                      <h3 className="text-xl font-semibold text-purple-300 mb-2">Detected Niche:</h3>
+                      <p className="text-gray-300">{analysisResult.niche}</p>
+                    </div>
+                  )}
+
+                  {/* Display SEO Recommendations */}
+                  {analysisResult.seoRecommendations && analysisResult.seoRecommendations.length > 0 && (
+                    <div className="mb-4">
+                      <h3 className="text-xl font-semibold text-purple-300 mb-2">SEO Recommendations:</h3>
+                      <ul className="list-disc list-inside text-gray-300">
+                        {analysisResult.seoRecommendations.map((rec, index) => (
+                          <li key={index}>{rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Display Content Opportunities */}
+                  {analysisResult.contentOpportunities && analysisResult.contentOpportunities.length > 0 && (
+                    <div className="mb-4">
+                      <h3 className="text-xl font-semibold text-purple-300 mb-2">Content Opportunities:</h3>
+                      <ul className="list-disc list-inside text-gray-300">
+                        {analysisResult.contentOpportunities.map((opp, index) => (
+                          <li key={index}>{opp}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Display Affiliate Integration Suggestions */}
+                  {analysisResult.affiliateIntegrationSuggestions && analysisResult.affiliateIntegrationSuggestions.length > 0 && (
+                    <div className="mb-4">
+                      <h3 className="text-xl font-semibold text-purple-300 mb-2">Affiliate Integration Suggestions:</h3>
+                      <ul className="list-disc list-inside text-gray-300">
+                        {analysisResult.affiliateIntegrationSuggestions.map((sugg, index) => (
+                          <li key={index}>{sugg}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Display Overall Score (if applicable) */}
+                  {analysisResult.score !== undefined && (
+                    <div className="mb-4">
+                      <h3 className="text-xl font-semibold text-purple-300 mb-2">Overall Analysis Score:</h3>
+                      <p className="text-gray-300 text-2xl font-bold">{analysisResult.score}/100</p>
+                    </div>
+                  )}
+
+                  {/* Add more fields as needed based on your backend's analysis output */}
                 </div>
               </div>
             )}

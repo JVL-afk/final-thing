@@ -1,81 +1,58 @@
-import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
+import { NextRequest, NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
+import clientPromise from '../../../../../lib/mongodb'; // Adjust path if necessary
 
-// Simple in-memory storage for launch day
-const users = new Map()
-const verificationCodes = new Map()
+// In-memory "database" (to be replaced by MongoDB)
+// const users = new Map(); // REMOVE OR COMMENT OUT THIS LINE
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password } = await request.json()
+    const { email, password } = await request.json();
 
-    console.log('🚀 SIGNUP ATTEMPT:', { name, email })
-
-    if (!name || !email || !password) {
+    if (!email || !password) {
       return NextResponse.json(
-        { success: false, error: 'All fields are required' },
+        { success: false, error: 'Email and password are required' },
         { status: 400 }
-      )
+      );
     }
 
-    if (password.length < 8) {
-      return NextResponse.json(
-        { success: false, error: 'Password must be at least 8 characters long' },
-        { status: 400 }
-      )
-    }
+    const client = await clientPromise;
+    const db = client.db('affilify'); // Use your database name (e.g., 'affilify')
+    const usersCollection = db.collection('users');
 
     // Check if user already exists
-    if (users.has(email)) {
+    const existingUser = await usersCollection.findOne({ email });
+    if (existingUser) {
       return NextResponse.json(
-        { success: false, error: 'An account with this email already exists' },
-        { status: 400 }
-      )
+        { success: false, error: 'User with this email already exists' },
+        { status: 409 }
+      );
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12)
+    const hashedPassword = await bcrypt.hash(password, 10); // 10 is the salt rounds
 
-    // Generate 6-digit verification code
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString()
-    const codeExpiry = new Date(Date.now() + 600000) // 10 minutes
-
-    // Store user (verified for launch day)
-    users.set(email, {
-      name,
+    // Save user to MongoDB
+    const newUser = {
       email,
       password: hashedPassword,
-      verified: true, // AUTO-VERIFY for launch day
-      createdAt: new Date()
-    })
+      createdAt: new Date(),
+      // Add any other default user fields here
+    };
+    await usersCollection.insertOne(newUser);
 
-    // Store verification code
-    verificationCodes.set(email, {
-      code: verificationCode,
-      expiry: codeExpiry
-    })
+    console.log(`User signed up: ${email}`);
 
-    // LAUNCH DAY: Console logging instead of email
-    console.log('🎯 VERIFICATION CODE FOR', email, ':', verificationCode)
-    console.log('📧 User auto-verified for launch day')
-    console.log('✅ Account created successfully')
-
-    return NextResponse.json({
-      success: true,
-      message: 'Account created and verified successfully!',
-      email: email,
-      autoVerified: true // Launch day feature
-    })
-
-  } catch (error: any) {
-    console.error('❌ Signup error:', error)
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { success: true, message: 'User registered successfully' },
+      { status: 201 }
+    );
+  } catch (error: any) {
+    console.error('Signup error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error during signup' },
       { status: 500 }
-    )
+    );
   }
 }
-
-// Export users map for other auth endpoints
-export { users, verificationCodes }
 

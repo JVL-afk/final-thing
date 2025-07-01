@@ -1,59 +1,58 @@
-import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
+import { NextRequest, NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
+import clientPromise from '../../../../../lib/mongodb'; // Adjust path if necessary
 
-// Import users from signup route
-const users = new Map()
+// In-memory "database" (to be replaced by MongoDB)
+// const users = new Map(); // REMOVE OR COMMENT OUT THIS LINE
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json()
-
-    console.log('🔐 LOGIN ATTEMPT:', email)
+    const { email, password } = await request.json();
 
     if (!email || !password) {
       return NextResponse.json(
         { success: false, error: 'Email and password are required' },
         { status: 400 }
-      )
+      );
     }
 
-    // Check if user exists
-    const user = users.get(email)
+    const client = await clientPromise;
+    const db = client.db('affilify'); // Use your database name
+    const usersCollection = db.collection('users');
+
+    // Find user in MongoDB
+    const user = await usersCollection.findOne({ email });
+
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Invalid email or password' },
+        { success: false, error: 'Invalid credentials' },
         { status: 401 }
-      )
+      );
     }
 
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password)
-    if (!isValidPassword) {
+    // Compare password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
       return NextResponse.json(
-        { success: false, error: 'Invalid email or password' },
+        { success: false, error: 'Invalid credentials' },
         { status: 401 }
-      )
+      );
     }
 
-    // LAUNCH DAY: Skip email verification check
-    console.log('✅ LOGIN SUCCESS:', email)
+    console.log(`User logged in: ${email}`);
 
-    return NextResponse.json({
-      success: true,
-      message: 'Login successful',
-      user: {
-        name: user.name,
-        email: user.email,
-        verified: true // Always true for launch day
-      }
-    })
-
-  } catch (error: any) {
-    console.error('❌ Login error:', error)
+    // In a real application, you would generate a JWT token here
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { success: true, message: 'Login successful', user: { email: user.email } },
+      { status: 200 }
+    );
+  } catch (error: any) {
+    console.error('Login error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error during login' },
       { status: 500 }
-    )
+    );
   }
 }
 
