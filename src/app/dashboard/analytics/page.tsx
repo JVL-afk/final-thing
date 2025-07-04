@@ -10,10 +10,8 @@ export default function AnalyticsPage() {
   const [selectedWebsite, setSelectedWebsite] = useState('all')
 
   useEffect(() => {
-    loadAnalyticsData()
   }, [dateRange, selectedWebsite])
 
-  const loadAnalyticsData = async () => {
     try {
       const userEmail = localStorage.getItem('userEmail') || 'demo@user.com'
       const websiteParam = selectedWebsite !== 'all' ? `&websiteId=${selectedWebsite}` : ''
@@ -73,7 +71,6 @@ export default function AnalyticsPage() {
       })
       
       // Reload data
-      loadAnalyticsData()
     }, 1000)
   }
 
