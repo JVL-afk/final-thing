@@ -1,6 +1,6 @@
-import Link from 'next/link'
+import Link from 'next/link';
 
-export default function Navbar( ) {
+export default function Navbar() {
   return (
     <nav className="bg-purple-900 shadow-lg sticky top-0 z-50">
       <div className="container mx-auto px-4">
@@ -40,6 +40,6 @@ export default function Navbar( ) {
         </div>
       </div>
     </nav>
-  )
+  );
 }
 
