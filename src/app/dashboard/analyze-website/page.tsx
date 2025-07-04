@@ -1,181 +1,115 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import Link from 'next/link'
+import { useState, useEffect } from 'react';
 
-export default function AnalyzeWebsitePage( ) {
-  const [websiteUrl, setWebsiteUrl] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [analysisResult, setAnalysisResult] = useState(null)
-  const [error, setError] = useState('')
+// This is the PUBLIC URL of your REAL backend service
+const BACKEND_API_URL = 'http://45.32.73.36:3000/api/analyze-website';
+
+interface AnalysisResult {
+  url: string;
+  [key: string]: any; // Allow any other fields
+}
+
+export default function AnalyzeWebsite( ) {
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-    setAnalysisResult(null)
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    setAnalysis(null);
 
     try {
-      // *** CRITICAL CHANGE: Calling the real backend API on port 3000 ***
-      // REPLACE '45.32.73.36' WITH YOUR ACTUAL SERVER'S PUBLIC IP ADDRESS
-      const response = await fetch('http://45.32.73.36:3000/api/analyze-website', {
+      // This fetch call is now made DIRECTLY from the browser to the backend
+      const response = await fetch(BACKEND_API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // 'x-user-email': localStorage.getItem('userEmail' ) || 'demo@user.com' // May not be needed by external backend
-        },
-        body: JSON.stringify({ url: websiteUrl }),
-      })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: websiteUrl,
+        }),
+      });
 
-      const data = await response.json()
+      if (!response.ok) {
+        // Try to get a meaningful error from the backend response
+        const errorText = await response.text();
+        throw new Error(`Analysis server returned an error: ${response.status} ${response.statusText}. Details: ${errorText}`);
+      }
+
+      const data = await response.json();
 
       if (data.success) {
-        setAnalysisResult(data.analysis) // Assuming backend returns 'analysis' object
-        // Track website analysis (if AFFILIFY.trackWebsiteAnalysis exists)
-        if (typeof window !== 'undefined' && window.AFFILIFY && window.AFFILIFY.trackWebsiteAnalysis) {
-          window.AFFILIFY.trackWebsiteAnalysis(websiteUrl, data.analysis.niche || 'unknown', data.analysis.score || 0);
-        }
+        setAnalysis(data.analysis);
       } else {
-        setError(data.error || 'Failed to analyze website. Please check backend logs.')
+        setError(data.error || 'Failed to analyze website. Please try again.');
       }
     } catch (err: any) {
-      setError('An error occurred while analyzing the website: ' + err.message + '. Ensure backend is running and accessible.')
+      console.error("Analysis submission error:", err);
+      setError('An unexpected error occurred: ' + err.message);
     } finally {
-      setLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-orange-600 to-black">
-      {/* Navigation */}
-      <nav className="bg-black/20 backdrop-blur-sm border-b border-orange-500/20">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <Link href="/" className="text-2xl font-bold text-white">
-              AFFILIFY
-            </Link>
-            <div className="flex items-center space-x-4">
-              <Link href="/dashboard" className="text-orange-200 hover:text-white">
-                ← Back to Dashboard
-              </Link>
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-orange-600 to-black text-white p-8">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl font-bold mb-6 text-center">Analyze a Website's Performance</h1>
+        <p className="text-center text-orange-200 mb-8">
+          Enter any website URL to get a comprehensive analysis powered by AI and Google PageSpeed Insights.
+        </p>
+        
+        <form onSubmit={handleSubmit} className="space-y-4 mb-8 bg-black/30 p-6 rounded-xl">
+          <div>
+            <label htmlFor="websiteUrl" className="block text-sm font-medium mb-2 text-purple-300">
+              Website URL to Analyze
+            </label>
+            <input
+              id="websiteUrl"
+              type="url"
+              value={websiteUrl}
+              onChange={(e) => setWebsiteUrl(e.target.value)}
+              placeholder="https://example.com"
+              className="w-full p-3 bg-gray-800 border border-purple-500/50 rounded-lg text-white focus:ring-orange-500 focus:border-orange-500"
+              required
+            />
+          </div>
+          
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+          >
+            {isLoading ? 'Analyzing, please wait (this can take up to a minute )...' : 'Analyze Website'}
+          </button>
+        </form>
+
+        {error && (
+          <div className="mt-4 p-4 bg-red-900/50 border border-red-500 text-red-200 rounded-lg">
+            <p className="font-bold">Analysis Failed</p>
+            <p>{error}</p>
+          </div>
+        )}
+
+        {analysis && (
+          <div className="mt-6 space-y-6 animate-fade-in">
+            <div className="bg-green-900/50 border border-green-500 text-green-200 p-4 rounded-lg">
+              <h3 className="font-bold text-lg mb-2">Analysis Complete!</h3>
+              <p>Website: <a href={analysis.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">{analysis.url}</a></p>
+            </div>
+
+            <div className="bg-black/30 p-6 rounded-xl">
+              <h4 className="font-semibold text-lg mb-3 text-purple-300">Full Analysis Report:</h4>
+              <pre className="text-sm text-white bg-gray-900 p-4 rounded-lg overflow-x-auto whitespace-pre-wrap break-words">
+                {JSON.stringify(analysis, null, 2)}
+              </pre>
             </div>
           </div>
-        </div>
-      </nav>
-
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-4xl font-bold text-white mb-6 text-center">
-            Analyze Any Website with AI 📊
-          </h1>
-          <p className="text-orange-200 text-lg mb-8 text-center">
-            Get AI-powered insights into website performance, SEO, content, and affiliate potential.
-          </p>
-
-          <div className="bg-black/30 backdrop-blur-sm rounded-xl p-8 border border-orange-500/20">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="websiteUrl" className="block text-sm font-medium text-orange-200 mb-2">
-                  Website URL to Analyze
-                </label>
-                <input
-                  type="url"
-                  id="websiteUrl"
-                  value={websiteUrl}
-                  onChange={(e) => setWebsiteUrl(e.target.value)}
-                  className="w-full px-4 py-3 bg-black/50 border border-orange-500/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
-                  placeholder="e.g., https://www.example.com"
-                  required
-                />
-              </div>
-
-              {error && (
-                <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3">
-                  <p className="text-red-200 text-sm">{error}</p>
-                </div>
-               )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 px-4 rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 transition-all duration-200"
-              >
-                {loading ? 'Analyzing Website...' : 'Analyze Website'}
-              </button>
-            </form>
-
-            {analysisResult && (
-              <div className="mt-8 pt-8 border-t border-orange-500/20">
-                <h2 className="text-3xl font-bold text-white mb-4">Analysis Results for: {websiteUrl}</h2>
-                <div className="bg-black/20 rounded-lg p-6 border border-purple-500/30">
-                  {/* Display Summary */}
-                  {analysisResult.summary && (
-                    <div className="mb-4">
-                      <h3 className="text-xl font-semibold text-purple-300 mb-2">Summary:</h3>
-                      <p className="text-gray-300">{analysisResult.summary}</p>
-                    </div>
-                  )}
-
-                  {/* Display Niche */}
-                  {analysisResult.niche && (
-                    <div className="mb-4">
-                      <h3 className="text-xl font-semibold text-purple-300 mb-2">Detected Niche:</h3>
-                      <p className="text-gray-300">{analysisResult.niche}</p>
-                    </div>
-                  )}
-
-                  {/* Display SEO Recommendations */}
-                  {analysisResult.seoRecommendations && analysisResult.seoRecommendations.length > 0 && (
-                    <div className="mb-4">
-                      <h3 className="text-xl font-semibold text-purple-300 mb-2">SEO Recommendations:</h3>
-                      <ul className="list-disc list-inside text-gray-300">
-                        {analysisResult.seoRecommendations.map((rec, index) => (
-                          <li key={index}>{rec}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Display Content Opportunities */}
-                  {analysisResult.contentOpportunities && analysisResult.contentOpportunities.length > 0 && (
-                    <div className="mb-4">
-                      <h3 className="text-xl font-semibold text-purple-300 mb-2">Content Opportunities:</h3>
-                      <ul className="list-disc list-inside text-gray-300">
-                        {analysisResult.contentOpportunities.map((opp, index) => (
-                          <li key={index}>{opp}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Display Affiliate Integration Suggestions */}
-                  {analysisResult.affiliateIntegrationSuggestions && analysisResult.affiliateIntegrationSuggestions.length > 0 && (
-                    <div className="mb-4">
-                      <h3 className="text-xl font-semibold text-purple-300 mb-2">Affiliate Integration Suggestions:</h3>
-                      <ul className="list-disc list-inside text-gray-300">
-                        {analysisResult.affiliateIntegrationSuggestions.map((sugg, index) => (
-                          <li key={index}>{sugg}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Display Overall Score (if applicable) */}
-                  {analysisResult.score !== undefined && (
-                    <div className="mb-4">
-                      <h3 className="text-xl font-semibold text-purple-300 mb-2">Overall Analysis Score:</h3>
-                      <p className="text-gray-300 text-2xl font-bold">{analysisResult.score}/100</p>
-                    </div>
-                  )}
-
-                  {/* Add more fields as needed based on your backend's analysis output */}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        )}
       </div>
     </div>
-  )
+  );
 }
 
