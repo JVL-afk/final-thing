@@ -9,32 +9,14 @@ export default function Navbar() {
             AFFILIFY
           </Link>
           <div className="flex space-x-6 items-center">
-            <Link href="/" className="text-purple-200 hover:text-white hover:bg-purple-700 px-4 py-2 rounded-lg transition-all duration-300 font-semibold">
-              Home
-            </Link>
-            <Link href="/about" className="text-purple-200 hover:text-white hover:bg-purple-700 px-4 py-2 rounded-lg transition-all duration-300 font-semibold">
-              About
-            </Link>
-            <Link href="/features" className="text-purple-200 hover:text-white hover:bg-purple-700 px-4 py-2 rounded-lg transition-all duration-300 font-semibold">
-              Features
-            </Link>
-            <Link href="/pricing" className="text-purple-200 hover:text-white hover:bg-purple-700 px-4 py-2 rounded-lg transition-all duration-300 font-semibold">
-              Pricing
-            </Link>
-            <Link href="/docs" className="text-purple-200 hover:text-white hover:bg-purple-700 px-4 py-2 rounded-lg transition-all duration-300 font-semibold">
-              Documentation
-            </Link>
+            <Link href="/" className="text-purple-200 hover:text-white hover:bg-purple-700 px-4 py-2 rounded-lg transition-all duration-300 font-semibold">Home</Link>
+            <Link href="/about" className="text-purple-200 hover:text-white hover:bg-purple-700 px-4 py-2 rounded-lg transition-all duration-300 font-semibold">About</Link>
+            <Link href="/features" className="text-purple-200 hover:text-white hover:bg-purple-700 px-4 py-2 rounded-lg transition-all duration-300 font-semibold">Features</Link>
+            <Link href="/pricing" className="text-purple-200 hover:text-white hover:bg-purple-700 px-4 py-2 rounded-lg transition-all duration-300 font-semibold">Pricing</Link>
+            <Link href="/docs" className="text-purple-200 hover:text-white hover:bg-purple-700 px-4 py-2 rounded-lg transition-all duration-300 font-semibold">Documentation</Link>
             <div className="flex space-x-3">
-              <Link href="/login">
-                <button className="text-purple-200 hover:text-white hover:bg-purple-700 px-6 py-2 rounded-lg transition-all duration-300 font-semibold hover:scale-105">
-                  Sign-in
-                </button>
-              </Link>
-              <Link href="/signup">
-                <button className="text-purple-200 hover:text-white hover:bg-purple-700 px-6 py-2 rounded-lg transition-all duration-300 font-semibold hover:scale-105">
-                  Sign-up
-                </button>
-              </Link>
+              <Link href="/login"><button className="text-purple-200 hover:text-white hover:bg-purple-700 px-6 py-2 rounded-lg transition-all duration-300 font-semibold hover:scale-105">Sign-in</button></Link>
+              <Link href="/signup"><button className="text-purple-200 hover:text-white hover:bg-purple-700 px-6 py-2 rounded-lg transition-all duration-300 font-semibold hover:scale-105">Sign-up</button></Link>
             </div>
           </div>
         </div>
