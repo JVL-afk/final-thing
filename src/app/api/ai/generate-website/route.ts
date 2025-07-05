@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import clientPromise from '../../../../../lib/mongodb'; // This path should be correct
-import { Collection, ObjectId } from 'mongodb'; // Import Collection and ObjectId
+import clientPromise from '../../../../lib/mongodb'; // This path should be correct
+import { Collection, MongoClient, ObjectId } from 'mongodb'; // Import MongoClient
 
 interface User {
   _id: ObjectId;
@@ -11,7 +11,7 @@ interface User {
 
 export async function POST(request: NextRequest ) {
   try {
-    const client = await clientPromise; // clientPromise is MongoClient
+    const client: MongoClient = await clientPromise; // Explicitly type clientPromise as MongoClient
     const db = client.db('affilify'); // Assuming 'affilify' is your database name
     const usersCollection: Collection<User> = db.collection<User>('users');
 
