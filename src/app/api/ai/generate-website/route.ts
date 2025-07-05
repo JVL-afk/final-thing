@@ -9,16 +9,16 @@ interface User {
   analysesUsed: number;
 }
 
-export async function POST(request: NextRequest ) {
+export async function POST(request: NextRequest) {
   try {
-    const client: MongoClient = await clientPromise; // Explicitly type clientPromise as MongoClient
+    const client: MongoClient = await clientPromise; // Explicitly type client
     const db = client.db('affilify'); // Assuming 'affilify' is your database name
     const usersCollection: Collection<User> = db.collection<User>('users');
 
     const { userId, websiteConfig } = await request.json();
 
     if (!userId || !websiteConfig) {
-      return NextResponse.json({ error: 'Missing userId or websiteConfig', success: false }, { status: 400 });
+      return NextResponse.json({ error: 'Missing userId or websiteConfig' }, { status: 400 });
     }
 
     const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
@@ -27,45 +27,51 @@ export async function POST(request: NextRequest ) {
       return NextResponse.json({ error: 'User not found', success: false }, { status: 404 });
     }
 
-    // Check user's plan and usage limits
+    // Check user\'s plan and usage limits
     const plan = user.plan || 'free';
     const generationsUsed = user.generationsUsed || 0;
 
-    let maxGenerations: number;
-    switch (plan) {
-      case 'free':
-        maxGenerations = 1;
-        break;
-      case 'pro':
-        maxGenerations = 10;
-        break;
-      case 'enterprise':
-        maxGenerations = Infinity; // Unlimited
-        break;
-      default:
-        maxGenerations = 0; // Should not happen
+    let generationLimit = 0;
+    if (plan === 'free') {
+      generationLimit = 10; // Example limit for free plan
+    } else if (plan === 'pro') {
+      generationLimit = 100; // Example limit for pro plan
+    } else if (plan === 'enterprise') {
+      generationLimit = Infinity; // Unlimited for enterprise
     }
 
-    if (generationsUsed >= maxGenerations) {
-      return NextResponse.json({ error: `You have reached your limit of ${maxGenerations} website generations for the ${plan} plan. Please upgrade.`, success: false }, { status: 403 });
+    if (generationsUsed >= generationLimit) {
+      return NextResponse.json({ error: 'Generation limit reached for your plan', success: false }, { status: 403 });
     }
 
-    // Simulate website generation (replace with actual generation logic)
-    const generatedWebsiteUrl = `https://generated-affilify-site-${Date.now( )}.netlify.app`; // Placeholder URL
+    // Simulate website generation
+    const generatedWebsiteUrl = `https://affilify.ai/websites/${new Date( ).getTime()}`;
 
-    // Update user's generation count
+    // Update user\'s generationsUsed count
     await usersCollection.updateOne(
       { _id: new ObjectId(userId) },
       { $inc: { generationsUsed: 1 } }
     );
 
-    return NextResponse.json({ message: 'Website generated successfully!', url: generatedWebsiteUrl, success: true });
-
+    return NextResponse.json({ success: true, websiteUrl: generatedWebsiteUrl });
   } catch (error) {
-    console.error('Error in generate-website API:', error);
+    console.error('Error generating website:', error);
     return NextResponse.json({ error: 'Internal Server Error', success: false }, { status: 500 });
   }
 }
+
+export async function GET() {
+  return NextResponse.json({ message: 'GET request to generate website' });
+}
+
+export async function PUT() {
+  return NextResponse.json({ message: 'PUT request to generate website' });
+}
+
+export async function DELETE() {
+  return NextResponse.json({ message: 'DELETE request to generate website' });
+}
+
 
 
 
