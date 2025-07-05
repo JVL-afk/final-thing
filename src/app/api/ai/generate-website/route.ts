@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import clientPromise from '../../../../lib/mongodb'; // This path should be correct
+import clientPromise from '../../../../../lib/mongodb'; // This path should be correct
 import { Collection, MongoClient, ObjectId } from 'mongodb'; // Import MongoClient
 
 interface User {
