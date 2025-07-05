@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import clientPromise from '../../../../../lib/mongodb';
-import { ObjectId } from 'mongodb';
+import clientPromise from '../../../../lib/mongodb'; // This path should be correct
+import { Collection, ObjectId } from 'mongodb'; // Import Collection and ObjectId
+
+interface User {
+  _id: ObjectId;
+  plan: string;
+  generationsUsed: number;
+  analysesUsed: number;
+}
 
 export async function POST(request: NextRequest ) {
   try {
-    const client = await clientPromise;
-    const db = client.db('affilify'); // Assuming 'affilify' is your database name. If not, try 'test' or your actual DB name.
-    const usersCollection = db.collection('users');
+    const client = await clientPromise; // clientPromise is MongoClient
+    const db = client.db('affilify'); // Assuming 'affilify' is your database name
+    const usersCollection: Collection<User> = db.collection<User>('users');
 
     const { userId, websiteConfig } = await request.json();
 
@@ -24,7 +31,7 @@ export async function POST(request: NextRequest ) {
     const plan = user.plan || 'free';
     const generationsUsed = user.generationsUsed || 0;
 
-    let maxGenerations;
+    let maxGenerations: number;
     switch (plan) {
       case 'free':
         maxGenerations = 1;
@@ -59,5 +66,6 @@ export async function POST(request: NextRequest ) {
     return NextResponse.json({ error: 'Internal Server Error', success: false }, { status: 500 });
   }
 }
+
 
 
