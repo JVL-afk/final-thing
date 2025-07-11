@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
+  // Removed experimental.appDir as it's no longer needed for Next.js 14.2.30
   images: {
     domains: ['images.unsplash.com', 'unsplash.com'],
   },

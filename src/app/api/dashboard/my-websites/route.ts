@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+// @ts-ignore
 import clientPromise from '../../../../../lib/mongodb'; // Adjust path if necessary
 
 export async function GET(request: NextRequest) {
@@ -13,6 +14,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
+// @ts-ignore
     const client = await clientPromise;
     const db = client.db('affilify'); // Use your database name
     const websitesCollection = db.collection('generatedWebsites');

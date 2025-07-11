@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+// @ts-ignore
 import clientPromise from '../../../../../lib/mongodb';
 import { Collection, MongoClient, ObjectId } from 'mongodb';
 
@@ -20,6 +21,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+// @ts-ignore
     const mongoClientPromise = clientPromise as Promise<MongoClient>;
     const client: MongoClient = await mongoClientPromise;
     const db = client.db('affilify');

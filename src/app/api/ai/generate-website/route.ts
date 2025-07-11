@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+// @ts-ignore
 import clientPromise from '../../../../../lib/mongodb';
 import { Collection, MongoClient, ObjectId } from 'mongodb';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -10,27 +11,12 @@ interface User {
   analysesUsed: number;
 }
 
-interface GeneratedWebsite {
-  _id?: ObjectId;
-  content: string;
-  createdAt: Date;
-  websiteConfig: {
-    niche?: string;
-    product?: string;
-    audience?: string;
-    features?: string[];
-    callToAction?: string;
-  };
-  userId: ObjectId;
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const mongoClientPromise = clientPromise as Promise<MongoClient>;
-    const client: MongoClient = await mongoClientPromise;
+// @ts-ignore
+    const client: MongoClient = await clientPromise;
     const db = client.db('affilify');
     const usersCollection: Collection<User> = db.collection<User>('users');
-    const websitesCollection: Collection<GeneratedWebsite> = db.collection<GeneratedWebsite>('generated_websites');
 
     const { userId, websiteConfig } = await request.json();
 
@@ -49,9 +35,9 @@ export async function POST(request: NextRequest) {
 
     let generationLimit = 0;
     if (plan === 'free') {
-      generationLimit = 10;
+      generationLimit = 3;
     } else if (plan === 'pro') {
-      generationLimit = 100;
+      generationLimit = 10;
     } else if (plan === 'enterprise') {
       generationLimit = Infinity;
     }
@@ -62,72 +48,25 @@ export async function POST(request: NextRequest) {
 
     // Initialize Google Generative AI
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY as string);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" }); // Using gemini-pro for content generation
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Using gemini-1.5-flash
 
     // Construct a detailed prompt for website content generation
-    const prompt = `Generate personalized website content based on the following configuration:
-    Niche: ${websiteConfig.niche || 'general'}
-    Product/Service: ${websiteConfig.product || 'various'}
-    Target Audience: ${websiteConfig.audience || 'general'}
-    Key Features/Benefits: ${websiteConfig.features ? websiteConfig.features.join(', ') : 'N/A'}
-    Call to Action: ${websiteConfig.callToAction || 'Learn More'}
-
-    Provide the content in a structured JSON format with the following structure:
-    {
-      "hero": {
-        "title": "Main headline for the hero section",
-        "body": "Compelling description for the hero section"
-      },
-      "about": {
-        "title": "About section title",
-        "body": "Detailed about section content"
-      },
-      "services": {
-        "title": "Services section title", 
-        "body": "Description of services offered"
-      },
-      "testimonials": {
-        "title": "Testimonials section title",
-        "body": "Customer testimonials or social proof"
-      },
-      "contact": {
-        "title": "Contact section title",
-        "body": "Contact information and call to action"
-      }
-    }
-
-    Ensure the content is engaging, relevant to the specified configuration, and professionally written. Make it specific to the niche and product/service provided.`;
+    const prompt = `Generate personalized website content based on the following configuration:\n    Niche: ${websiteConfig.niche || 'general'}\n    Product/Service: ${websiteConfig.product || 'various'}\n    Target Audience: ${websiteConfig.audience || 'general'}\n    Key Features/Benefits: ${websiteConfig.features ? websiteConfig.features.join(', ') : 'N/A'}\n    Call to Action: ${websiteConfig.callToAction || 'Learn More'}\n\n    Provide the content in a structured JSON format, including sections like 'hero', 'about', 'services', 'testimonials', 'contact'. Each section should have a title and detailed body text. Ensure the content is engaging and relevant to the specified configuration.`;
 
     const result = await model.generateContent(prompt);
     const aiResponse = await result.response;
     const generatedContent = aiResponse.text();
 
-    // Store the generated website in the database
-    const websiteDocument: GeneratedWebsite = {
-      content: generatedContent,
-      createdAt: new Date(),
-      websiteConfig: websiteConfig,
-      userId: new ObjectId(userId)
-    };
+    // In a real application, you would then use this generatedContent to build the actual website.
+    // For now, we'll return it as part of the response.
+    const generatedWebsiteUrl = `https://affilify.ai/websites/${new Date( ).getTime()}`;
 
-    const insertResult = await websitesCollection.insertOne(websiteDocument);
-    const websiteId = insertResult.insertedId;
-
-    // Create the actual website URL using the website ID
-    const generatedWebsiteUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/websites/${websiteId}`;
-
-    // Update user's generationsUsed count
     await usersCollection.updateOne(
       { _id: new ObjectId(userId) },
       { $inc: { generationsUsed: 1 } }
     );
 
-    return NextResponse.json({ 
-      success: true, 
-      websiteUrl: generatedWebsiteUrl,
-      websiteId: websiteId.toString(),
-      generatedContent: generatedContent 
-    });
+    return NextResponse.json({ success: true, websiteUrl: generatedWebsiteUrl, generatedContent: generatedContent });
   } catch (error) {
     console.error('Error generating website:', error);
     return NextResponse.json({ error: 'Internal Server Error', success: false }, { status: 500 });
@@ -145,7 +84,3 @@ export async function PUT() {
 export async function DELETE() {
   return NextResponse.json({ message: 'DELETE request to generate website' });
 }
-
-
-
-

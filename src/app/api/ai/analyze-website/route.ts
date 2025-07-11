@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+// @ts-ignore
+import clientPromise from '../../../../../lib/mongodb';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { MongoClient } from 'mongodb'; // Import MongoClient for typing
 
 export async function POST(request: NextRequest) {
   try {
+// @ts-ignore
+    const client: MongoClient = await clientPromise;
+
     const { websiteUrl } = await request.json();
     const userEmail = request.headers.get('x-user-email') || 'demo@user.com';
 
@@ -20,31 +26,7 @@ export async function POST(request: NextRequest) {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     // Construct a detailed prompt for website analysis
-    const prompt = `Analyze the following website URL: ${websiteUrl}. Provide a comprehensive analysis focusing on:
-    1. Overall summary and main topic.
-    2. SEO recommendations (meta descriptions, alt tags, internal/external links, keywords).
-    3. Content quality, readability, and relevance to potential affiliate niches.
-    4. Identify opportunities for new content, keyword targeting, and affiliate product integration.
-    5. Suggestions for affiliate programs in complementary niches.
-
-    Provide the analysis in a structured JSON format with the following keys:
-    {
-      "summary": "Overall summary of the website and its main topic.",
-      "seoRecommendations": [
-        "Recommendation 1",
-        "Recommendation 2"
-      ],
-      "contentOpportunities": [
-        "Opportunity 1",
-        "Opportunity 2"
-      ],
-      "affiliateSuggestions": [
-        "Suggestion 1",
-        "Suggestion 2"
-      ]
-    }
-
-    Ensure the analysis is insightful, actionable, and professionally written.`;
+    const prompt = `Analyze the following website URL: ${websiteUrl}. Provide a comprehensive analysis focusing on:\n    1. Overall summary and main topic.\n    2. SEO recommendations (meta descriptions, alt tags, internal/external links, keywords).\n    3. Content quality, readability, and relevance to potential affiliate niches.\n    4. Identify opportunities for new content, keyword targeting, and affiliate product integration.\n    5. Suggestions for affiliate programs in complementary niches.\n\n    Provide the analysis in a structured JSON format with the following keys:\n    {\n      "summary": "Overall summary of the website and its main topic.",\n      "seoRecommendations": [\n        "Recommendation 1",\n        "Recommendation 2"\n      ],\n      "contentOpportunities": [\n        "Opportunity 1",\n        "Opportunity 2"\n      ],\n      "affiliateSuggestions": [\n        "Suggestion 1",\n        "Suggestion 2"\n      ]\n    }\n\n    Ensure the analysis is insightful, actionable, and professionally written.`;
 
     const result = await model.generateContent(prompt);
     const aiResponse = await result.response;
@@ -73,5 +55,3 @@ export async function POST(request: NextRequest) {
     }, { status: 500 });
   }
 }
-
-

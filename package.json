@@ -12,6 +12,7 @@
     "@google-analytics/data": "^5.1.0",
     "@google-cloud/language": "^7.1.0",
     "@google-cloud/vision": "^5.2.0",
+    "@google/generative-ai": "^0.14.1",
     "@stripe/stripe-js": "^2.4.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.5",

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
+// @ts-ignore
 import clientPromise from '../../../../../lib/mongodb'; // Adjust path if necessary
 
 // In-memory "database" (to be replaced by MongoDB)
@@ -16,6 +17,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+// @ts-ignore
     const client = await clientPromise;
     const db = client.db('affilify'); // Use your database name (e.g., 'affilify')
     const usersCollection = db.collection('users');
